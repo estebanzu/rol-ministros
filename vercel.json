@@ -1,8 +1,6 @@
 {
   "functions": {
-    "app/main.py": {
-      "runtime": "python3.12"
-    }
+    "app/main.py": {}
   },
   "routes": [
     { "src": "/(.*)", "dest": "app/main.py" }
