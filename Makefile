@@ -83,3 +83,8 @@ clean:
 dist-clean: clean
 	@rm -rf $(VENV) data 2>/dev/null || true
 	@echo "Limpieza total completada."
+docker-up:
+	@docker compose up -d --build
+
+docker-down:
+	@docker compose down

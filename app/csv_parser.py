@@ -22,6 +22,7 @@ class CsvError:
     row: int
     column: str
     message: str
+    cell_value: str | None = None
 
 
 @dataclass
@@ -128,6 +129,7 @@ def parse_csv(data: bytes) -> ParseResult:
                     row=1,
                     column=", ".join(missing),
                     message=f"Faltan columnas requeridas: {', '.join(missing)}",
+                    cell_value=None,
                 )
             ]
         )
@@ -146,7 +148,7 @@ def parse_csv(data: bytes) -> ParseResult:
         name = val(row, "nombre")
         if not name:
             result.errors.append(
-                CsvError(row=row_no, column="nombre", message="El nombre es obligatorio.")
+                CsvError(row=row_no, column="nombre", message="El nombre es obligatorio.", cell_value=name)
             )
             continue
 
@@ -169,6 +171,7 @@ def parse_csv(data: bytes) -> ParseResult:
                         row=row_no,
                         column=col,
                         message=f"Valor '{val(row, col)}' no válido. Usa si/no.",
+                        cell_value=val(row, col),
                     )
                 )
                 valid_row = False
@@ -228,18 +231,14 @@ def parse_masses_csv(data: bytes) -> MassParseResult:
         day = _parse_day(day_raw)
         if day is None:
             result.errors.append(
-                CsvError(
-                    row=row_no,
-                    column="dia",
-                    message=f"Día '{day_raw}' no válido. Usa lunes a domingo o 1-7.",
-                )
+                CsvError(row=row_no, column="dia", message=f"Día '{day_raw}' no válido. Usa lunes a domingo o 1-7.", cell_value=day_raw)
             )
             continue
 
         location_name = val(row, "lugar")
         if not location_name:
             result.errors.append(
-                CsvError(row=row_no, column="lugar", message="El lugar es obligatorio.")
+                CsvError(row=row_no, column="lugar", message="El lugar es obligatorio.", cell_value=location_name)
             )
             continue
 
@@ -250,6 +249,7 @@ def parse_masses_csv(data: bytes) -> MassParseResult:
                     row=row_no,
                     column="hora",
                     message="La hora debe tener formato HH:MM.",
+                    cell_value=time,
                 )
             )
             continue
@@ -262,6 +262,7 @@ def parse_masses_csv(data: bytes) -> MassParseResult:
                     row=row_no,
                     column="tipo",
                     message="El tipo debe ser 'centro' o 'filial'.",
+                    cell_value=kind_raw,
                 )
             )
             continue
@@ -279,6 +280,7 @@ def parse_masses_csv(data: bytes) -> MassParseResult:
                         row=row_no,
                         column="minimo",
                         message="El mínimo debe ser un número entero mayor o igual a 1.",
+                        cell_value=min_raw,
                     )
                 )
                 continue
