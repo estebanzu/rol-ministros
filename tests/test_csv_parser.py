@@ -1,50 +1,70 @@
 from app.csv_parser import parse_csv, parse_masses_csv
 
-CSV_HEADER = "nombre,telefono,lunes,martes,miercoles,jueves,viernes,sabado,domingo\n"
+CSV_HEADER = (
+    "nombre,telefono,lunes_manana,lunes_tarde,martes_manana,martes_tarde,"
+    "miercoles_manana,miercoles_tarde,jueves_manana,jueves_tarde,viernes_manana,"
+    "viernes_tarde,sabado_tarde,domingo_manana,domingo_noche\n"
+)
 MASSES_HEADER = "dia,lugar,tipo,hora,minimo\n"
 
 
 def test_semicolon_detected():
     text = (
-        "nombre;telefono;lunes;martes;miercoles;jueves;viernes;sabado;domingo\n"
-        "Maria;111;si;no;si;no;no;si;si\n"
+        "nombre;telefono;lunes_manana;lunes_tarde;martes_manana;martes_tarde;miercoles_manana;miercoles_tarde;jueves_manana;jueves_tarde;viernes_manana;viernes_tarde;sabado_tarde;domingo_manana;domingo_noche\n"
+        "Maria;111;si;no;si;no;no;si;si;no;no;no;no;si;si\n"
     )
     result = parse_csv(text.encode("utf-8"))
     assert not result.errors
     assert result.ministers[0].name == "Maria"
-    assert result.ministers[0].days == [1, 3, 6, 7]
+    assert result.ministers[0].days == [1, 2, 3, 4, 7, 7]
+    assert result.ministers[0].slots == [
+        "01-08:00",
+        "02-08:00",
+        "03-18:00",
+        "04-08:00",
+        "07-08:00",
+        "07-16:00",
+    ]
 
 
 def test_utf8_bom():
-    result = parse_csv(("\ufeff" + CSV_HEADER + "Maria,111,si,no,no,no,no,no,no\n").encode("utf-8"))
+    row = "Maria,111,si,no,no,no,no,no,no,no,no,no,no,si,no\n"
+    result = parse_csv(("\ufeff" + CSV_HEADER + row).encode("utf-8"))
     assert not result.errors
     assert result.ministers[0].name == "Maria"
 
 
 def test_latin1_encoding():
-    text = CSV_HEADER + "María Pérez,111,si,no,no,no,no,no,no\n"
+    text = CSV_HEADER + "María Pérez,111,si,no,no,no,no,no,no,no,no,no,no,no,no\n"
     result = parse_csv(text.encode("latin-1"))
     assert not result.errors
     assert result.ministers[0].name == "María Pérez"
 
 
 def test_day_value_variants():
-    text = CSV_HEADER + "Ana,111,S,x,1,verdadero,no,0,\n"
+    text = CSV_HEADER + "Ana,111,S,x,1,verdadero,no,0,no,no,no,no,no,si,no\n"
     result = parse_csv(text.encode("utf-8"))
     assert not result.errors
-    assert result.ministers[0].days == [1, 2, 3, 4]
+    assert result.ministers[0].days == [1, 1, 2, 2, 7]
+    assert result.ministers[0].slots == ["01-08:00", "01-18:00", "02-08:00", "02-18:00", "07-08:00"]
 
 
 def test_invalid_value_error_with_row_and_column():
-    text = CSV_HEADER + "Ana,111,quizas,no,no,no,no,no,no\n"
+    text = CSV_HEADER + "Ana,111,quizas,no,no,no,no,no,no,no,no,no,no,no,no\n"
     result = parse_csv(text.encode("utf-8"))
     assert len(result.errors) == 1
     assert result.errors[0].row == 2
-    assert result.errors[0].column == "lunes"
+    assert result.errors[0].column == "lunes_manana"
 
 
 def test_missing_phone_column_is_error():
-    text = "nombre,lunes,martes,miercoles,jueves,viernes,sabado,domingo\nAna,si,no,no,no,no,no,no\n"
+    text = (
+        "nombre,lunes_manana,lunes_tarde,martes_manana,martes_tarde,"
+        "miercoles_manana,miercoles_tarde,jueves_manana,jueves_tarde,"
+        "viernes_manana,viernes_tarde,sabado_tarde,domingo_manana,"
+        "domingo_noche\n"
+        "Ana,si,no,no,no,no,no,si,si,no,no,no,no,si,no\n"
+    )
     result = parse_csv(text.encode("utf-8"))
     assert result.errors
     assert "telefono" in result.errors[0].message
@@ -52,23 +72,23 @@ def test_missing_phone_column_is_error():
 
 def test_accented_day_headers_accepted():
     text = (
-        "nombre,telefono,lunes,martes,miércoles,jueves,viernes,sábado,domingo\n"
-        "Ana,111,si,no,si,no,no,si,no\n"
+        "nombre,telefono,lunes_manana,lunes_tarde,martes_manana,martes_tarde,miercoles_manana,miercoles_tarde,jueves_manana,jueves_tarde,viernes_manana,viernes_tarde,sabado_tarde,domingo_manana,domingo_noche\n"
+        "Ana,111,si,no,si,no,no,no,si,no,no,no,si,no,no\n"
     )
     result = parse_csv(text.encode("utf-8"))
     assert not result.errors
-    assert result.ministers[0].days == [1, 3, 6]
+    assert result.ministers[0].days == [1, 2, 4, 6]
 
 
 def test_empty_name_is_error():
-    text = CSV_HEADER + ",111,si,no,no,no,no,no,no\n"
+    text = CSV_HEADER + ",111,si,no,no,no,no,no,no,no,no,no,no,no,no\n"
     result = parse_csv(text.encode("utf-8"))
     assert result.errors
     assert result.errors[0].column == "nombre"
 
 
 def test_missing_phone_is_warning_not_error():
-    text = CSV_HEADER + "Ana,,si,no,no,no,no,no,no\n"
+    text = CSV_HEADER + "Ana,,si,no,no,no,no,no,no,no,no,no,no,no,no\n"
     result = parse_csv(text.encode("utf-8"))
     assert not result.errors
     assert any(w.column == "telefono" for w in result.warnings)
@@ -80,7 +100,10 @@ def test_empty_file():
 
 
 def test_error_keeps_valid_rows_separate():
-    text = CSV_HEADER + "Ana,111,si,si,si,si,si,si,si\nJuan,222,quizas,no,no,no,no,no,no\n"
+    text = (
+        CSV_HEADER + "Ana,111,si,si,si,si,si,si,si,si,si,si,si,si,si\n"
+        "Juan,222,quizas,no,no,no,no,no,no,no,no,no,no,no,no\n"
+    )
     result = parse_csv(text.encode("utf-8"))
     assert len(result.ministers) == 1
     assert result.ministers[0].name == "Ana"

@@ -39,7 +39,7 @@ class Minister(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str
     phone: str | None = None
-    days_available: str
+    slots_available: str
     active: bool = True
 
     assignments: list["Assignment"] = Relationship(
@@ -47,8 +47,8 @@ class Minister(SQLModel, table=True):
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
-    def available_days(self) -> list[int]:
-        return [int(x) for x in self.days_available.split(",") if x.strip()]
+    def available_slots(self) -> set[str]:
+        return {s.strip() for s in self.slots_available.split(",") if s.strip()}
 
 
 class RosterWeek(SQLModel, table=True):

@@ -21,7 +21,7 @@ class MassInfo:
 @dataclass
 class MinisterInfo:
     id: int
-    days: list[int]
+    slots: set[str]
 
 
 @dataclass
@@ -39,6 +39,10 @@ def next_monday(today: date) -> date:
     return today + timedelta(days=(7 - today.weekday()) % 7 or 7)
 
 
+def make_slot_key(day: int, time: str) -> str:
+    return f"{day:02d}-{time}"
+
+
 def assign(masses: list[MassInfo], ministers: list[MinisterInfo]) -> tuple[list[Slot], list[str]]:
     masses_sorted = sorted(
         masses,
@@ -52,31 +56,25 @@ def assign(masses: list[MassInfo], ministers: list[MinisterInfo]) -> tuple[list[
     ministers = sorted(ministers, key=lambda m: m.id)
 
     load: dict[int, int] = {m.id: 0 for m in ministers}
-    day_load: dict[int, dict[int, int]] = {m.id: {d: 0 for d in m.days} for m in ministers}
+    slot_load: dict[str, int] = {s: 0 for m in ministers for s in m.slots}
 
     slots: list[Slot] = []
     warnings: list[str] = []
 
     for mass in masses_sorted:
-        candidates = [m for m in ministers if mass.day in day_load[m.id]]
-        candidates.sort(key=lambda m: (load[m.id], day_load[m.id].get(mass.day, 0), m.id))
+        slot = make_slot_key(mass.day, mass.time)
+        candidates = [m for m in ministers if slot in m.slots]
+        candidates.sort(key=lambda m: (load[m.id], slot_load.get(slot, 0), m.id))
 
         chosen: list[MinisterInfo] = []
         for m in candidates:
-            if day_load[m.id].get(mass.day, 0) == 0:
-                chosen.append(m)
-                if len(chosen) >= mass.min_ministers:
-                    break
-        if len(chosen) < mass.min_ministers:
-            for m in candidates:
-                if m not in chosen:
-                    chosen.append(m)
-                if len(chosen) >= mass.min_ministers:
-                    break
+            if len(chosen) >= mass.min_ministers:
+                break
+            chosen.append(m)
 
         for i, m in enumerate(chosen):
             load[m.id] += 1
-            day_load[m.id][mass.day] = day_load[m.id].get(mass.day, 0) + 1
+            slot_load[slot] = slot_load.get(slot, 0) + 1
             slots.append(Slot(mass_id=mass.id, minister_id=m.id, order=i))
 
         if len(chosen) < mass.min_ministers:
@@ -95,7 +93,7 @@ def generate_roster(session: Session, week_start: date) -> RosterWeek:
     masses = session.exec(select(Mass).where(Mass.active)).all()
 
     minister_infos = [
-        MinisterInfo(id=m.id, days=m.available_days()) for m in ministers if m.available_days()
+        MinisterInfo(id=m.id, slots=m.available_slots()) for m in ministers if m.available_slots()
     ]
     mass_infos = []
     for mass in masses:

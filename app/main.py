@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent
 DAY_MIN = {"centro": 4, "filial": 2}
 TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 TEMPLATE_CSV = (
-    "nombre,telefono,lunes,martes,miercoles,jueves,viernes,sabado,domingo\n"
-    "Maria Perez,555-1234,si,si,no,si,no,si,si\n"
-    "Juan Garcia,555-5678,no,si,si,si,si,no,no\n"
+    "nombre,telefono,lunes_manana,lunes_tarde,martes_manana,martes_tarde,miercoles_manana,miercoles_tarde,jueves_manana,jueves_tarde,viernes_manana,viernes_tarde,sabado_tarde,domingo_manana,domingo_noche\n"
+    "Maria Perez,555-1234,si,si,no,si,no,si,si,si,no,si,si,no,si\n"
+    "Juan Garcia,555-5678,no,si,si,si,si,no,no,si,si,si,si,no,no,si\n"
 )
 MASS_TEMPLATE_CSV = (
     "dia,lugar,tipo,hora,minimo\n"
@@ -85,7 +85,7 @@ def _min_read(minister: Minister) -> schemas.MinisterRead:
         id=minister.id,
         name=minister.name,
         phone=minister.phone,
-        days_available=minister.days_available,
+        slots_available=minister.slots_available,
         active=minister.active,
     )
 
@@ -231,6 +231,29 @@ def delete_location(location_id: int, session: Session = Depends(get_session)):
 def list_masses(session: Session = Depends(get_session)):
     masses = session.exec(select(Mass).where(Mass.active).order_by(Mass.day, Mass.time)).all()
     return [_mass_read(m) for m in masses]
+
+
+@app.get("/api/schedule/fixed")
+def fixed_schedule():
+    return {
+        "location": "Centro Parroquial",
+        "slots": [
+            {"day": 1, "time": "08:00"},
+            {"day": 1, "time": "18:00"},
+            {"day": 2, "time": "08:00"},
+            {"day": 2, "time": "18:00"},
+            {"day": 3, "time": "08:00"},
+            {"day": 3, "time": "18:00"},
+            {"day": 4, "time": "08:00"},
+            {"day": 4, "time": "18:00"},
+            {"day": 5, "time": "08:00"},
+            {"day": 5, "time": "18:00"},
+            {"day": 6, "time": "17:00"},
+            {"day": 7, "time": "08:00"},
+            {"day": 7, "time": "11:00"},
+            {"day": 7, "time": "16:00"},
+        ],
+    }
 
 
 def _validate_mass_time(time: str):
@@ -451,7 +474,7 @@ async def upload_ministers(file: UploadFile = File(...), session: Session = Depe
             Minister(
                 name=pm.name,
                 phone=pm.phone or None,
-                days_available=",".join(str(d) for d in pm.days),
+                slots_available=",".join(pm.slots),
             )
         )
     session.commit()

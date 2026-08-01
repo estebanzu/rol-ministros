@@ -5,3 +5,4 @@ python-multipart==0.0.32
 reportlab==5.0.0
 pytest==9.1.1
 httpx==0.28.1
+mangum==0.19.0

@@ -37,7 +37,7 @@ class MinisterRead(BaseModel):
     id: int
     name: str
     phone: str | None = None
-    days_available: str
+    slots_available: str
     active: bool
 
 

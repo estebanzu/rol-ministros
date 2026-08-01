@@ -53,12 +53,19 @@ def test_mass_invalid_time(client):
 
 
 def _csv_bytes(rows):
-    header = "nombre,telefono,lunes,martes,miercoles,jueves,viernes,sabado,domingo\n"
+    header = (
+        "nombre,telefono,lunes_manana,lunes_tarde,martes_manana,martes_tarde,"
+        "miercoles_manana,miercoles_tarde,jueves_manana,jueves_tarde,viernes_manana,"
+        "viernes_tarde,sabado_tarde,domingo_manana,domingo_noche\n"
+    )
     return (header + rows).encode("utf-8")
 
 
 def test_upload_with_error_saves_nothing(client):
-    bad = _csv_bytes("Maria,111,si,si,si,si,si,si,si\nJuan,222,quizas,si,si,si,si,si,si\n")
+    bad = _csv_bytes(
+        "Maria,111,si,si,si,si,si,si,si,si,si,si,si,si,si\n"
+        "Juan,222,quizas,si,si,si,si,si,si,si,si,si,si,si,si\n"
+    )
     r = client.post("/api/ministers/upload", files={"file": ("m.csv", bad, "text/csv")})
     assert r.status_code == 200
     data = r.json()
@@ -69,11 +76,14 @@ def test_upload_with_error_saves_nothing(client):
 
 
 def test_upload_valid_and_replace(client):
-    first = _csv_bytes("Maria,111,si,si,si,si,si,si,si\nJuan,222,si,si,si,si,si,si,si\n")
+    first = _csv_bytes(
+        "Maria,111,si,si,si,si,si,si,si,si,si,si,si,si,si\n"
+        "Juan,222,si,si,si,si,si,si,si,si,si,si,si,si,si\n"
+    )
     r1 = client.post("/api/ministers/upload", files={"file": ("m.csv", first, "text/csv")})
     assert r1.json()["imported"] == 2
 
-    second = _csv_bytes("Ana,333,si,si,si,si,si,si,si\n")
+    second = _csv_bytes("Ana,333,si,si,si,si,si,si,si,si,si,si,si,si,si\n")
     r2 = client.post("/api/ministers/upload", files={"file": ("m.csv", second, "text/csv")})
     assert r2.json()["imported"] == 1
 
@@ -90,9 +100,11 @@ def test_download_template(client):
 def _setup_full(client):
     centro = _location(client, "Parroquia San José", "centro")
     filial = _location(client, "Capilla La Paz", "filial")
-    client.post("/api/masses", json={"location_id": centro["id"], "day": 7, "time": "10:00"})
-    client.post("/api/masses", json={"location_id": filial["id"], "day": 6, "time": "19:00"})
-    rows = "".join(f"Ministro {i},55{i},si,si,si,si,si,si,si\n" for i in range(1, 7))
+    client.post("/api/masses", json={"location_id": centro["id"], "day": 7, "time": "08:00"})
+    client.post("/api/masses", json={"location_id": filial["id"], "day": 6, "time": "17:00"})
+    rows = "".join(
+        f"Ministro {i},55{i},si,si,si,si,si,si,si,si,si,si,si,si,si\n" for i in range(1, 7)
+    )
     r = client.post(
         "/api/ministers/upload", files={"file": ("m.csv", _csv_bytes(rows), "text/csv")}
     )
@@ -133,8 +145,10 @@ def test_roster_persisted_in_db(client, session):
 
 def test_roster_con_faltantes(client):
     centro = _location(client, "Centro", "centro")
-    client.post("/api/masses", json={"location_id": centro["id"], "day": 7, "time": "10:00"})
-    rows = _csv_bytes("A,1,si,si,si,si,si,si,si\nB,2,si,si,si,si,si,si,si\n")
+    client.post("/api/masses", json={"location_id": centro["id"], "day": 7, "time": "08:00"})
+    rows = _csv_bytes(
+        "A,1,si,si,si,si,si,si,si,si,si,si,si,si,si\nB,2,si,si,si,si,si,si,si,si,si,si,si,si,si\n"
+    )
     client.post("/api/ministers/upload", files={"file": ("m.csv", rows, "text/csv")})
     r = client.post("/api/roster/generate", params={"week_start": MONDAY.isoformat()})
     assert r.status_code == 200

@@ -14,7 +14,7 @@ TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 def _normalize_header(h: str) -> str:
     h = unicodedata.normalize("NFKD", h)
     h = "".join(c for c in h if not unicodedata.combining(c))
-    return h.strip().lower().replace(" ", "").replace("_", "")
+    return h.strip().lower().replace(" ", "")
 
 
 @dataclass
@@ -29,6 +29,7 @@ class ParsedMinister:
     name: str
     phone: str
     days: list[int]
+    slots: list[str]
 
 
 @dataclass
@@ -65,6 +66,32 @@ def _detect_delimiter(first_line: str) -> str:
     return ";" if first_line.count(";") > first_line.count(",") else ","
 
 
+def _parse_day(raw: str) -> int | None:
+    norm = _normalize_header(raw)
+    if norm in DAY_NAME_TO_NUM:
+        return DAY_NAME_TO_NUM[norm]
+    if norm in {"1", "2", "3", "4", "5", "6", "7"}:
+        return int(norm)
+    return None
+
+
+SLOT_TIME_MAP = {
+    "lunes_manana": "08:00",
+    "lunes_tarde": "18:00",
+    "martes_manana": "08:00",
+    "martes_tarde": "18:00",
+    "miercoles_manana": "08:00",
+    "miercoles_tarde": "18:00",
+    "jueves_manana": "08:00",
+    "jueves_tarde": "18:00",
+    "viernes_manana": "08:00",
+    "viernes_tarde": "18:00",
+    "sabado_tarde": "17:00",
+    "domingo_manana": "08:00",
+    "domingo_noche": "16:00",
+}
+
+
 def parse_csv(data: bytes) -> ParseResult:
     text = _decode(data)
     lines = text.splitlines()
@@ -77,7 +104,22 @@ def parse_csv(data: bytes) -> ParseResult:
     header = [_normalize_header(h) for h in rows[0]]
     header_idx = {h: i for i, h in enumerate(header)}
 
-    required = ["nombre", "telefono"] + DAY_HEADERS
+    slot_pairs = [
+        ("lunes", "manana", "lunes_manana"),
+        ("lunes", "tarde", "lunes_tarde"),
+        ("martes", "manana", "martes_manana"),
+        ("martes", "tarde", "martes_tarde"),
+        ("miercoles", "manana", "miercoles_manana"),
+        ("miercoles", "tarde", "miercoles_tarde"),
+        ("jueves", "manana", "jueves_manana"),
+        ("jueves", "tarde", "jueves_tarde"),
+        ("viernes", "manana", "viernes_manana"),
+        ("viernes", "tarde", "viernes_tarde"),
+        ("sabado", "tarde", "sabado_tarde"),
+        ("domingo", "manana", "domingo_manana"),
+        ("domingo", "noche", "domingo_noche"),
+    ]
+    required = ["nombre", "telefono"] + [col for _, _, col in slot_pairs]
     missing = [h for h in required if h not in header_idx]
     if missing:
         return ParseResult(
@@ -110,19 +152,23 @@ def parse_csv(data: bytes) -> ParseResult:
 
         phone = val(row, "telefono")
         days: list[int] = []
+        slots: list[str] = []
+
         valid_row = True
-        for i, day in enumerate(DAY_HEADERS, start=1):
-            raw = val(row, day).strip().lower()
+        for day_name, _slot_name, col in slot_pairs:
+            raw = val(row, col).strip().lower()
             if raw in TRUE_VALUES:
-                days.append(i)
+                day_num = DAY_NAME_TO_NUM[day_name]
+                days.append(day_num)
+                slots.append(f"{day_num:02d}-{SLOT_TIME_MAP[col]}")
             elif raw in FALSE_VALUES:
                 continue
             else:
                 result.errors.append(
                     CsvError(
                         row=row_no,
-                        column=day,
-                        message=f"Valor '{val(row, day)}' no válido. Usa si/no.",
+                        column=col,
+                        message=f"Valor '{val(row, col)}' no válido. Usa si/no.",
                     )
                 )
                 valid_row = False
@@ -130,11 +176,11 @@ def parse_csv(data: bytes) -> ParseResult:
             continue
         if not phone:
             result.warnings.append(CsvError(row=row_no, column="telefono", message="Sin teléfono."))
-        if not days:
+        if not slots:
             result.warnings.append(
-                CsvError(row=row_no, column="", message="No disponible ningún día.")
+                CsvError(row=row_no, column="", message="No disponible ningún horario.")
             )
-        result.ministers.append(ParsedMinister(name=name, phone=phone, days=days))
+        result.ministers.append(ParsedMinister(name=name, phone=phone, days=days, slots=slots))
 
     return result
 
@@ -260,12 +306,3 @@ def parse_masses_csv(data: bytes) -> MassParseResult:
         )
 
     return result
-
-
-def _parse_day(raw: str) -> int | None:
-    norm = _normalize_header(raw)
-    if norm in DAY_NAME_TO_NUM:
-        return DAY_NAME_TO_NUM[norm]
-    if norm in {"1", "2", "3", "4", "5", "6", "7"}:
-        return int(norm)
-    return None

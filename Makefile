@@ -38,6 +38,23 @@ format:
 lint:
 	$(PIP) install $(PIP_FLAGS) ruff
 	$(PY) -m ruff check app tests
+# Additional verification targets
+
+type-check:
+	$(PIP) install $(PIP_FLAGS) mypy
+	$(PY) -m mypy app tests
+
+security-extra:
+	$(PIP) install $(PIP_FLAGS) bandit safety
+	$(PY) -m bandit -r app
+	$(PY) -m safety check -r requirements.txt
+
+coverage:
+	$(PIP) install $(PIP_FLAGS) pytest-cov
+	$(PY) -m pytest --cov=app --cov-report=term-missing
+
+all-check: format lint type-check security security-extra coverage
+	@echo "All checks passed."
 
 clean:
 	@find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
