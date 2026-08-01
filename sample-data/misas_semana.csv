@@ -1,0 +1,15 @@
+dia,lugar,tipo,hora,minimo
+Lunes,Capilla La Paz,Filial,19:00,2
+Lunes,Parroquia San Jose,Centro,19:00,4
+Martes,Capilla El Rosario,Filial,18:30,2
+Miercoles,Parroquia San Jose,Centro,19:30,4
+Jueves,Capilla San Cayetano,Filial,19:00,2
+Viernes,Capilla La Paz,Filial,19:00,2
+Viernes,Parroquia San Jose,Centro,20:00,4
+Sabado,Capilla El Rosario,Filial,18:30,2
+Sabado,Capilla San Cayetano,Filial,19:00,2
+Sabado,Parroquia San Jose,Centro,19:00,4
+Domingo,Capilla La Paz,Filial,10:00,2
+Domingo,Capilla El Rosario,Filial,11:00,2
+Domingo,Parroquia San Jose,Centro,10:00,4
+Domingo,Parroquia San Jose,Centro,12:00,4

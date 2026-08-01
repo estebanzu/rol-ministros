@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rol de Ministros de la Comunión</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="logo-dot" aria-hidden="true"></span>
+      <h1>Rol de Ministros de la Comunión</h1>
+    </div>
+    <p class="tagline">Planificación del rol semanal de misas</p>
+    <nav>
+      <button class="tab-btn active" data-tab="masses">Misas</button>
+      <button class="tab-btn" data-tab="ministers">Ministros</button>
+      <button class="tab-btn" data-tab="roster">Rol</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="tab-masses" class="tab active">
+      <h2>Lugares y misas</h2>
+      <div class="card">
+        <h3>Agregar lugar</h3>
+        <form id="location-form">
+          <input id="location-name" placeholder="Nombre del lugar" required>
+          <select id="location-kind">
+            <option value="centro">Centro parroquial</option>
+            <option value="filial">Filial</option>
+          </select>
+          <button type="submit">Agregar</button>
+        </form>
+      </div>
+      <div class="card" id="locations"></div>
+      <div class="card">
+        <h3>Agregar misa</h3>
+        <form id="mass-form">
+          <select id="mass-location" required></select>
+          <select id="mass-day" required></select>
+          <input id="mass-time" type="time" required>
+          <label>Mínimo de ministros
+            <input id="mass-min" type="number" min="1" step="1" value="2">
+          </label>
+          <button type="submit">Agregar</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Subir misas de la semana (CSV)</h3>
+        <form id="masses-upload-form">
+          <input id="masses-file" type="file" accept=".csv" required>
+          <button type="submit">Subir y reemplazar misas</button>
+        </form>
+        <p class="hint">
+          Columnas: <code>dia, lugar, tipo, hora, minimo</code>
+          (ej.: <code>Domingo,Parroquia San Jose,Centro,10:00,4</code>). Los lugares se crean automáticamente.
+          <a href="/api/masses/template.csv">Descargar plantilla CSV</a>
+        </p>
+        <div id="masses-upload-result"></div>
+      </div>
+      <div class="card" id="masses"></div>
+    </section>
+
+    <section id="tab-ministers" class="tab">
+      <h2>Ministros</h2>
+      <div class="card">
+        <h3>Subir CSV</h3>
+        <form id="upload-form">
+          <input id="csv-file" type="file" accept=".csv" required>
+          <button type="submit">Subir y reemplazar ministros</button>
+        </form>
+        <p class="hint">
+          Columnas: <code>nombre, telefono, lunes, martes, miercoles, jueves, viernes, sabado, domingo</code>
+          (valores si/no). <a href="/api/ministers/template.csv">Descargar plantilla CSV</a>
+        </p>
+      </div>
+      <div id="upload-result"></div>
+      <div class="card">
+        <h3>Ministros guardados
+          <button id="clear-ministers" class="danger small">Eliminar todos</button>
+        </h3>
+        <div id="ministers"></div>
+      </div>
+    </section>
+
+    <section id="tab-roster" class="tab">
+      <h2>Rol semanal</h2>
+      <div class="card">
+        <form id="roster-form">
+          <label>Semana que comienza el
+            <input id="roster-week" type="date" required>
+          </label>
+          <button type="submit">Generar rol</button>
+        </form>
+        <div class="actions">
+          <button id="pdf-btn" class="accent" type="button" hidden>Generar PDF</button>
+          <button id="reload-btn" class="ghost" type="button">Actualizar</button>
+          <button id="print-btn" class="ghost" type="button">Imprimir</button>
+          <button id="download-btn" class="ghost" type="button">Descargar CSV</button>
+        </div>
+      </div>
+      <div id="roster-result"></div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">Estado de datos</div>
+      <div class="upload-info">
+        <span class="item"><span class="dot"></span><strong>Ministros:</strong> <span id="footer-ministers">&mdash;</span></span>
+        <span class="item"><span class="dot"></span><strong>Misas:</strong> <span id="footer-masses">&mdash;</span></span>
+        <span class="item"><span class="dot"></span><strong>&Uacute;ltima subida:</strong> <span id="footer-last-upload">&mdash;</span></span>
+      </div>
+      <div class="footer-contact">Contacto: Gabriela Mora Aguilar &middot; Tel: +506 8817 2417</div>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
