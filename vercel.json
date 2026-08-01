@@ -1,7 +1,11 @@
 {
-  "functions": {
-    "vercel.py": {}
-  },
+  "builds": [
+    {
+      "src": "vercel.py",
+      "use": "@vercel/python",
+      "config": { "pythonVersion": "3.12" }
+    }
+  ],
   "routes": [
     { "src": "/(.*)", "dest": "vercel.py" }
   ]
