@@ -1,9 +1,15 @@
 VENV := .venv
 
 ifeq ($(wildcard $(VENV)/bin/pip),)
+ifeq ($(wildcard $(VENV)/Scripts/pip),)
 	PY := python3
 	PIP := python3 -m pip
 	PIP_FLAGS := --user --break-system-packages
+else
+	PY := $(VENV)/Scripts/python
+	PIP := $(VENV)/Scripts/pip
+	PIP_FLAGS :=
+endif
 else
 	PY := $(VENV)/bin/python
 	PIP := $(VENV)/bin/pip
@@ -13,9 +19,21 @@ endif
 .PHONY: build start stop security sanity format lint clean dist-clean
 
 build:
-	@rm -rf "$(VENV)"
-	python3 -m venv $(VENV)
-	$(VENV)/bin/pip install --ignore-installed -r requirements.txt
+	@rm -rf "$(VENV)" || true
+	python3 -m venv $(VENV) 2>/dev/null || python3 -m venv --without-pip $(VENV)
+	@if [ ! -f "$(VENV)/bin/pip" ] && [ ! -f "$(VENV)/Scripts/pip" ]; then \
+		echo "Bootstrapping pip..."; \
+		curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py || wget -q https://bootstrap.pypa.io/get-pip.py -O get-pip.py; \
+		$(VENV)/bin/python get-pip.py || $(VENV)/Scripts/python get-pip.py; \
+		rm -f get-pip.py; \
+	fi
+	@if [ -x "$(VENV)/bin/pip" ]; then \
+		$(VENV)/bin/pip install --ignore-installed -r requirements.txt; \
+	elif [ -f "$(VENV)/Scripts/pip" ] || [ -f "$(VENV)/Scripts/pip.exe" ]; then \
+		$(VENV)/Scripts/pip install --ignore-installed -r requirements.txt; \
+	else \
+		python3 -m pip install -r requirements.txt; \
+	fi
 
 start:
 	$(PY) -m uvicorn app.main:app --host 0.0.0.0 --port 8000
