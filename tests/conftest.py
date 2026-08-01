@@ -2,7 +2,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
-
+import sys, pathlib
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from app import models  # noqa: F401
 from app.main import app, get_session
 

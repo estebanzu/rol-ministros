@@ -147,6 +147,29 @@ main {
   box-shadow: var(--shadow-sm);
 }
 
+@media (max-width: 420px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
+
+
+/* Optional: ensure nav-card uses same card styling */
+.nav-card {
+  /* Inherit .card styles */
+  background: var(--navy-soft);
+  border: 2px solid var(--accent);
+  color: #fff;
+  transition: box-shadow var(--speed) var(--ease), transform var(--speed) var(--ease);
+  cursor: pointer;
+}
+
+.nav-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
 .card h3 {
   margin-top: 0;
   font-size: 16px;

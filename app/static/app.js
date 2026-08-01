@@ -147,17 +147,17 @@ async function loadMasses() {
     const h = document.createElement("h4");
     h.textContent = DAY_NAMES[d - 1];
     el.appendChild(h);
-    const table = document.createElement("table");
-    table.innerHTML = "<thead><tr><th>Hora</th><th>Lugar</th><th>Mínimo</th><th>Estado</th><th></th></tr></thead>";
-    const tbody = document.createElement("tbody");
+    const grid = document.createElement("div");
+    grid.className = "card-grid";
     for (const m of byDay[d]) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(m.time)}</td>
-        <td>${escapeHtml(m.location_name)}</td>
-        <td>${m.min_ministers}</td>
-        <td>${m.active ? "Activa" : "Inactiva"}</td>
-        <td></td>`;
+      const card = document.createElement("div");
+      card.className = "card nav-card";
+      card.innerHTML = `
+        <h4>${DAY_NAMES[d - 1]}</h4>
+        <p><strong>Hora:</strong> ${escapeHtml(m.time)}</p>
+        <p><strong>Lugar:</strong> ${escapeHtml(m.location_name)}</p>
+        <p><strong>Mínimo:</strong> ${m.min_ministers}</p>
+        <p><strong>Estado:</strong> ${m.active ? "Activa" : "Inactiva"}</p>`;
       const del = document.createElement("button");
       del.className = "danger small";
       del.textContent = "Eliminar";
@@ -166,13 +166,104 @@ async function loadMasses() {
         await fetch("/api/masses/" + m.id, { method: "DELETE" });
         loadMasses();
       });
-      tr.lastElementChild.appendChild(del);
-      tbody.appendChild(tr);
+      const edit = document.createElement("button");
+      edit.className = "accent small";
+      edit.textContent = "Editar";
+      edit.addEventListener("click", () => {
+        card.innerHTML = "";
+        card.appendChild(createEditForm(m));
+      });
+      card.appendChild(edit);
+      card.appendChild(del);
+      grid.appendChild(card);
     }
-    table.appendChild(tbody);
-    el.appendChild(wrapTable(table));
+    el.appendChild(grid);
   }
   renderFooter();
+
+// Helper to create an edit form for a mass entry
+function createEditForm(m) {
+  const form = document.createElement('form');
+  form.className = 'edit-form';
+
+  // Location ID input (numeric; could be enhanced with a selector)
+  const locInput = document.createElement('input');
+  locInput.type = 'number';
+  locInput.name = 'location_id';
+  locInput.value = m.location_id || '';
+  form.appendChild(document.createTextNode('Lugar ID: '));
+  form.appendChild(locInput);
+  form.appendChild(document.createElement('br'));
+
+  // Day selector
+  const daySelect = document.createElement('select');
+  daySelect.name = 'day';
+  for (let d = 1; d <= 7; d++) {
+    const opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = DAY_NAMES[d - 1];
+    if (d === m.day) opt.selected = true;
+    daySelect.appendChild(opt);
+  }
+  form.appendChild(document.createTextNode('Día: '));
+  form.appendChild(daySelect);
+  form.appendChild(document.createElement('br'));
+
+  // Time input
+  const timeInput = document.createElement('input');
+  timeInput.type = 'time';
+  timeInput.name = 'time';
+  timeInput.value = m.time || '';
+  form.appendChild(document.createTextNode('Hora: '));
+  form.appendChild(timeInput);
+  form.appendChild(document.createElement('br'));
+
+  // Minimum ministers input
+  const minInput = document.createElement('input');
+  minInput.type = 'number';
+  minInput.name = 'min_ministers';
+  minInput.value = m.min_ministers || '';
+  form.appendChild(document.createTextNode('Mínimo: '));
+  form.appendChild(minInput);
+  form.appendChild(document.createElement('br'));
+
+  // Submit and Cancel buttons
+  const submitBtn = document.createElement('button');
+  submitBtn.type = 'submit';
+  submitBtn.textContent = 'Guardar';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.textContent = 'Cancelar';
+  cancelBtn.addEventListener('click', () => {
+    // Reload masses to discard changes
+    loadMasses();
+  });
+  form.appendChild(submitBtn);
+  form.appendChild(cancelBtn);
+
+  // Handle form submission
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await api(`/api/masses/${m.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location_id: Number(locInput.value),
+          day: Number(daySelect.value),
+          time: timeInput.value,
+          min_ministers: Number(minInput.value) || null,
+        }),
+      });
+      loadMasses();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  return form;
+}
+
 }
 
 $("#location-form").addEventListener("submit", async (e) => {

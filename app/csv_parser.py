@@ -120,7 +120,7 @@ def parse_csv(data: bytes) -> ParseResult:
         ("domingo", "manana", "domingo_manana"),
         ("domingo", "noche", "domingo_noche"),
     ]
-    required = ["nombre", "telefono"] + [col for _, _, col in slot_pairs]
+    required = ["nombre", "telefono"]
     missing = [h for h in required if h not in header_idx]
     if missing:
         return ParseResult(
@@ -158,6 +158,9 @@ def parse_csv(data: bytes) -> ParseResult:
 
         valid_row = True
         for day_name, _slot_name, col in slot_pairs:
+            # Skip if column missing
+            if col not in header_idx:
+                continue
             raw = val(row, col).strip().lower()
             if raw in TRUE_VALUES:
                 day_num = DAY_NAME_TO_NUM[day_name]
