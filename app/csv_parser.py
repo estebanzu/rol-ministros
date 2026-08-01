@@ -182,10 +182,7 @@ def parse_csv(data: bytes) -> ParseResult:
             continue
         if not phone:
             result.warnings.append(CsvError(row=row_no, column="telefono", message="Sin teléfono."))
-        if not slots:
-            result.warnings.append(
-                CsvError(row=row_no, column="", message="No disponible ningún horario.")
-            )
+        # No schedule slots provided; this is acceptable and no warning is issued
         result.ministers.append(ParsedMinister(name=name, phone=phone, days=days, slots=slots))
 
     return result
