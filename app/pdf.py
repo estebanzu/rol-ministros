@@ -83,7 +83,8 @@ def build_roster_pdf(data: dict) -> bytes:
         author=CONTACT_NAME,
     )
     st = _styles()
-    story = []
+    from reportlab.platypus import Flowable
+    story: list[Flowable] = []
 
     story.append(Paragraph("Ministros de la Comunión", st["title"]))
     story.append(Paragraph(f"Rol semanal: {data['week_start_display']}", st["subtitle"]))

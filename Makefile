@@ -13,9 +13,9 @@ endif
 .PHONY: build start stop security sanity format lint clean dist-clean
 
 build:
-	@if [ ! -x "$(VENV)/bin/pip" ]; then rm -rf "$(VENV)"; fi
-	python3 -m venv $(VENV) 2>/dev/null || echo "python3-venv no disponible; se usaran paquetes de usuario."
-	@if [ -x "$(VENV)/bin/pip" ]; then $(VENV)/bin/pip install -r requirements.txt; else python3 -m pip install --user --break-system-packages -r requirements.txt; fi
+	@rm -rf "$(VENV)"
+	python3 -m venv $(VENV)
+	$(VENV)/bin/pip install --ignore-installed -r requirements.txt
 
 start:
 	$(PY) -m uvicorn app.main:app --host 0.0.0.0 --port 8000
